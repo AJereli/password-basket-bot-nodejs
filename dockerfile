@@ -9,6 +9,7 @@ CMD [ "npm", "install", "ts-node", "-g" ]
 CMD [ "npm", "install", "nest", "-g" ]
 
 CMD [ "npm", "run", "createOrmconfig" ]
+CMD ["less", "ormconfig.json"]
 CMD [ "npm", "run", "migrations:up" ]
 CMD [ "nest", "build"]
 CMD [ "npm", "run", "start" ]
