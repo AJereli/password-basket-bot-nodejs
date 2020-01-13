@@ -5,7 +5,7 @@ config();
 
 const ormconfigjson = `
 {
-    "type": "posgres",
+    "type": "postgres",
     "host": "${process.env.DB_HOST}",
     "port": ${process.env.DB_PORT},
     "username": "${process.env.DB_USER}",
