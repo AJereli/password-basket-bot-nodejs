@@ -1,6 +1,6 @@
 import { OnModuleInit, Injectable } from '@nestjs/common';
 import { AppConfig } from '../config/app.config';
-import Telegraf from 'telegraf';
+import Telegraf, {ContextMessageUpdate} from 'telegraf';
 import { UserService } from '../user/user.service';
 import { QueryFailedError, Repository } from 'typeorm';
 import { CommandService } from '../command/command.service';
@@ -15,6 +15,7 @@ import { ShowCredentialsCommand } from '../credentials/commands/show.credentials
 import { DeleteCredentialsCommand } from '../credentials/commands/delete.credentials.command';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MessageRecordEntity } from '../entites/message.record.entity';
+import { ShareBasketCommand } from '../backet/commands/share.basket.command';
 // import { CommandParseMiddleware } from './telegram.bot.middleware';
 
 @Injectable()
@@ -30,7 +31,6 @@ export class TelegramBotService {
               @InjectRepository(MessageRecordEntity) private readonly messageRecordRepository: Repository<MessageRecordEntity>) {
 
     this.bot = new Telegraf<any>(appConfig.tgBotToken);
-
 
     this.bot.use((ctx, next) => this.logMessage(ctx, next));
     this.bot.use((ctx, next) => this.commandService.commandParseMiddleware(ctx, next));
@@ -63,6 +63,7 @@ export class TelegramBotService {
     this.bot.command('addBasket', (ctx => this.addBasket(ctx, ctx.user)));
     this.bot.command('deleteBasket', (ctx => this.deleteBasket(ctx, ctx.user)));
     this.bot.command('show', ((ctx, next) => this.show(ctx)));
+    this.bot.command('share', (ctx => this.share(ctx, ctx.user)));
 
     this.bot.on('text', async (ctx) => {
       return ctx.reply('Unsupported command');
@@ -84,8 +85,14 @@ export class TelegramBotService {
     this.bot.startPolling();
   }
 
-  async logMessage(ctx, next) {
+  async share(ctx, user) {
+    const params = ctx.state.command.params;
+    const model = plainToClass(ShareBasketCommand, params);
+    await this.basketService.share(model, ctx.user);
+    return ctx.reply('Shared');
+  }
 
+  async logMessage(ctx, next) {
     await this.saveMessage(ctx.message);
     return next();
   }
@@ -114,7 +121,6 @@ export class TelegramBotService {
     } catch (e) {
       console.log(e);
     }
-
 
   }
 

@@ -7,12 +7,15 @@ import { WrongParamsException } from './exceptions/wrong.params.exception';
 import { UserEntity } from '../entites/user.entity';
 import { DeleteBasketCommand } from './commands/delete.basket.command';
 import { UserBasketEntity } from '../entites/user.basket.entity';
-import { BasketPermissionEnum, BasketPermissionEntity } from '../entites/basket.permission.entity';
+import { BasketPermissionEntity, BasketPermissionEnum } from '../entites/basket.permission.entity';
+import { ShareBasketCommand } from './commands/share.basket.command';
+import { SharingNotPermittedException } from './exceptions/sharing.not.permitted.exception';
 
 @Injectable()
 export class BasketService {
   constructor(@InjectRepository(BasketEntity) private readonly basketRepository: Repository<BasketEntity>,
-              @InjectRepository(UserBasketEntity) private readonly userBasketRepository: Repository<UserBasketEntity>) {}
+              @InjectRepository(UserBasketEntity) private readonly userBasketRepository: Repository<UserBasketEntity>,
+              @InjectRepository(UserEntity) private readonly userRepository: Repository<UserEntity>) {}
 
   public async create(basketCommand: AddBasketCommand, user: UserEntity) {
     if (!basketCommand.title) {
@@ -67,7 +70,6 @@ export class BasketService {
       .andWhere('ub.permission = :perm', {perm: BasketPermissionEnum.write})
       .getOne();
 
-
     if (!basket) {
       throw new WrongParamsException('Basket with such name not found');
     }
@@ -76,5 +78,46 @@ export class BasketService {
 
   }
 
+  public async share(shareOptions: ShareBasketCommand, user: UserEntity) {
+    if (!shareOptions.title) {
+      throw new WrongParamsException('Title of basket is required');
+    } else if (!shareOptions.username) {
+      throw new WrongParamsException('Username for sharing is required');
+    }
+
+    const userBasket = await this.userBasketRepository
+      .createQueryBuilder('ub')
+      .leftJoinAndSelect('ub.user', 'user', 'user.id = :uid', {uid: user.id})
+      .leftJoinAndSelect('ub.basket', 'basket', 'basket.id = ub.basket_id')
+      .where('basket.title = :title', {
+        title: shareOptions.title,
+      })
+      .getOne();
+
+    if (userBasket.permission.permission === BasketPermissionEnum.read) {
+      throw new SharingNotPermittedException();
+    }
+
+    const userForShare = await this.userRepository.findOne({
+      where: {
+       name: shareOptions.username,
+      },
+    });
+
+    if (!userForShare) {
+      throw new WrongParamsException('User with this telegram-name not found');
+    }
+
+    const newUserBasket = new UserBasketEntity();
+    const readPermission = new BasketPermissionEntity();
+    readPermission.permission = BasketPermissionEnum.read;
+
+    newUserBasket.permission = readPermission;
+    newUserBasket.user = userForShare;
+    newUserBasket.basket = userBasket.basket;
+
+    return this.userBasketRepository.save(newUserBasket);
+
+  }
 
 }
