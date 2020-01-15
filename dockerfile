@@ -16,4 +16,4 @@ RUN npm run createOrmconfig
 # CMD [ "npm", "run", "createOrmconfig"]
 # CMD [ "npm", "run", "migrations:up"]
 RUN nest build
-CMD [ "npm", "run", "start:prod"]
+CMD [ "npm", "run", "start"]
