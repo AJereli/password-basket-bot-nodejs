@@ -1,7 +1,5 @@
-import { Env, EnvType } from 'nestjs-env';
-import { Injectable } from '@nestjs/common';
+import { Env } from 'nestjs-env';
 
-// @Injectable()
 export class AppConfig {
   @Env('DB_NAME')
   dbName: string;
@@ -20,4 +18,7 @@ export class AppConfig {
 
   @Env('TG_BOT_TOKEN')
   tgBotToken: string;
+
+  @Env('NODE_PORT')
+  nodePort: number;
 }
